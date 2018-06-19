@@ -9,7 +9,7 @@ SRCS       = $(wildcard $(SRC)/*.c)
 
 OBJS       = $(patsubst %.c,%.o,$(SRCS))
 
-CFLAGS    += -m32 -nostdlib -nostdinc -ffreestanding -Wall -Wextra -Werror -I$(LIBINC)
+CFLAGS    += -m32 -nostdlib -nostdinc -Wall -Wextra -Werror -fno-stack-protector -I$(LIBINC) -g
 LDFLAGS    = -melf_i386 -T ../lib/linker.ld
 
 OUT        = lshell
@@ -17,7 +17,6 @@ OUT        = lshell
 link:   $(OBJS)
 	@echo -e "\033[33m  \033[1mLinking sources\033[0m"
 	@ld $(LDFLAGS) -o $(OUT) ../lib/crt/crt0.o $(OBJS) $(LIB)/liblambda.a
-	@objcopy -O binary $(OUT) $(OUT).bin
 
 all: link
 
