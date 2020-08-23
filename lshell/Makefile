@@ -10,11 +10,12 @@ SRCS       = $(wildcard $(SRC)/*.c)
 OBJS       = $(patsubst %.c,%.o,$(SRCS))
 
 CFLAGS    += -m32 -nostdlib -nostdinc -Wall -Wextra -Werror -fno-stack-protector -I$(LIBINC) -I$(INC) -g
-CFLAGS    += -Wno-builtin-declaration-mismatch
 LDFLAGS    = -melf_i386 -T ../lib/linker.ld
 
 ifeq ($(CC), clang)
 CFLAGS    += -Wno-incompatible-library-redeclaration 
+else
+CFLAGS    += -Wno-builtin-declaration-mismatch
 endif
 
 OUT        = lshell
