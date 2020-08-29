@@ -76,9 +76,10 @@ static int execute_command(char **args) {
     }
 
     printf("Command: [%s]\n", cmd);
-    while(++args) {
-        if(*args == 0) break;
-        printf("  - Argument: [%s]\n", *args);
+    int i = 0;
+    while(args[++i]) {
+        if(*args[i] == 0) break;
+        printf("  - Argument: [%s]\n", args[i]);
     }
 
     // TODO: Check that command exists, and check all elements in PATH
