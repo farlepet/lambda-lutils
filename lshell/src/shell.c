@@ -75,11 +75,9 @@ static int execute_command(char **args) {
         return 1;
     }
 
-    printf("Command: [%s]\n", cmd);
     int i = 0;
     while(args[++i]) {
         if(*args[i] == 0) break;
-        printf("  - Argument: [%s]\n", args[i]);
     }
 
     // TODO: Check that command exists, and check all elements in PATH
@@ -96,13 +94,11 @@ static int execute_command(char **args) {
         //return 1;
         exit(1);
     } else { // Parent process
-        // TODO: Wait on child, then return return value
-        printf("Waiting for child (%d) to exit...\n", pid);
         pid_t child = wait(NULL);
         if(child == -1) {
             printf("Something went wrong while waiting.\n");
         } else {
-            printf("Child (%d) exited.\n", child);
+            /* @todo Get child's return status */
         }
     }
 

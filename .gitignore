@@ -2,3 +2,6 @@
 *.bin
 
 lshell/lshell
+lutils/lutils
+linit/linit
+

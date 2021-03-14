@@ -18,7 +18,7 @@ else
 CFLAGS    += -Wno-builtin-declaration-mismatch
 endif
 
-OUT        = lshell
+OUT        = linit
 
 link:   $(OBJS)
 	@echo -e "\033[33m  \033[1mLinking sources\033[0m"

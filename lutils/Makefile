@@ -5,7 +5,7 @@ LIBINC     = $(LIB)/inc
 SRC        = $(MAINDIR)/src
 INC        = $(MAINDIR)/inc
 
-SRCS       = $(wildcard $(SRC)/*.c)
+SRCS       = $(wildcard $(SRC)/*.c) $(wildcard $(SRC)/*/*.c)
 
 OBJS       = $(patsubst %.c,%.o,$(SRCS))
 
@@ -18,11 +18,11 @@ else
 CFLAGS    += -Wno-builtin-declaration-mismatch
 endif
 
-OUT        = lshell
+OUT        = lutils
 
 link:   $(OBJS)
 	@echo -e "\033[33m  \033[1mLinking sources\033[0m"
-	@$(LD) $(LDFLAGS) -o $(OUT) $(LIB)/crt/crt0.o $(OBJS) $(LIB)/liblambda.a
+	@ld $(LDFLAGS) -o $(OUT) $(LIB)/crt/crt0.o $(OBJS) $(LIB)/liblambda.a
 
 all: link
 
