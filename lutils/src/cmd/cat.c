@@ -28,7 +28,7 @@ static int _cat_file(char *file) {
         /* Read from STDIN */
         fd = STDIN_FILENO;
     } else {
-        int fd = open(file, O_RDONLY);
+        fd = open(file, O_RDONLY);
         if(fd < 0) return -1;
     }
 
