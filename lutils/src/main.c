@@ -36,14 +36,14 @@ int main(int argc, char **argv, char **envp) {
         }
     }
 
-    printf("FATAL: Basename `%s` invalid!\n", argv[0]);
+    printf("FATAL: Basename `%s` invalid!\n", cmd);
 
     return 1;
 }
 
 static const char *get_basename(const char *str) {
     int idx = strlen(str) - 1;
-    while(str[idx] != '/' && idx > 0) {
+    while(str[idx] != '/' && idx >= 0) {
         idx--;
     }
 
