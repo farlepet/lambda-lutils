@@ -22,7 +22,7 @@ OUT        = lutils
 
 link:   $(OBJS)
 	@echo -e "\033[33m  \033[1mLinking sources\033[0m"
-	@ld $(LDFLAGS) -o $(OUT) $(LIB)/crt/crt0.o $(OBJS) $(LIB)/liblambda.a
+	@$(LD) $(LDFLAGS) -o $(OUT) $(LIB)/crt/crt0.o $(OBJS) $(LIB)/liblambda.a
 
 all: link
 

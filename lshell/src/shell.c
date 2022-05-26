@@ -9,11 +9,6 @@
 
 const char *prompt_txt = SHELL_PROMPT_STR;
 
-static char *envp[] = {
-    "PATH=/",
-    NULL
-};
-
 static void handle_command(char *cmd);
 
 void shell_loop(void) {
@@ -24,6 +19,7 @@ void shell_loop(void) {
         // TODO: Replace gets, as it is unsafe
         gets(cmd);
         if(strlen(cmd) > 0) {
+            puts("\n"); /* Workaround for '\n' character not being echoed right away via serial. */
             handle_command(cmd);
             puts(prompt_txt);
         }
@@ -80,15 +76,13 @@ static int execute_command(char **args) {
         if(*args[i] == 0) break;
     }
 
-    // TODO: Check that command exists, and check all elements in PATH
-
     pid_t pid = fork();
 
     if(pid == -1) {
         printf("Error while forking!\n");
         return 1;
     } else if(pid == 0) { // Child process
-        execve(cmd, args, envp);
+        execvp(cmd, args);
 
         printf("`execve` returned, something went wrong!\n");
         //return 1;
