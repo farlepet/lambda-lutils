@@ -9,8 +9,9 @@ typedef struct {
 } command_entry_t;
 
 command_entry_t commands[] = {
-    { "cat", command_cat },
-    { "ls",  command_ls  }
+    { "cat",  command_cat  },
+    { "ls",   command_ls   },
+    { "echo", command_echo }
 };
 
 static const char *get_basename(const char *str);
