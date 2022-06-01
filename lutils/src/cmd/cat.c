@@ -2,8 +2,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 
-#define CAT_BUFF_LEN 32
+#define CAT_BUFF_LEN 512
 
 static int _cat_file(char *file);
 
@@ -32,13 +33,17 @@ static int _cat_file(char *file) {
         if(fd < 0) return -1;
     }
 
-    char   buff[CAT_BUFF_LEN];
-    size_t len;
+    char *buff = malloc(CAT_BUFF_LEN);
+    if(buff == NULL) {
+        return -1;
+    }
 
+    size_t len;
     while((len = read(fd, buff, CAT_BUFF_LEN)) > 0) {
         write(STDOUT_FILENO, buff, len);
     }
 
+    free(buff);
     close(fd);
 
     return 0;
