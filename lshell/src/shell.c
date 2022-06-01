@@ -8,21 +8,27 @@
 
 #include <shell.h>
 
-const char *prompt_txt = SHELL_PROMPT_STR;
+const char *_default_prompt = SHELL_PROMPT_STR;
+const char *_prompt_var     = "PS1";
 
 static void _handle_command(const char *cmd);
 
 void shell_loop(void) {
     char cmd[256];
 
-    puts(prompt_txt);
+    setenv(_prompt_var, _default_prompt, 0);
+
+    const char *prompt = getenv(_prompt_var);
+    puts(prompt);
     while(1) {
         // TODO: Replace gets, as it is unsafe
         gets(cmd);
         if(strlen(cmd) > 0) {
             putchar('\n'); /* Workaround for '\n' character not being echoed right away via serial. */
             _handle_command(cmd);
-            puts(prompt_txt);
+
+            prompt = getenv(_prompt_var);
+            puts(prompt);
         }
     }
 }
