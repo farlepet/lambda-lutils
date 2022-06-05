@@ -13,23 +13,28 @@ const char *_prompt_var     = "PS1";
 
 static void _handle_command(const char *cmd);
 
+static void _display_prompt(void) {
+    const char *prompt = getenv(_prompt_var);
+    if(prompt == NULL) {
+        prompt = "> ";
+    }
+    puts(prompt);
+}
+
 void shell_loop(void) {
     char cmd[256];
 
     setenv(_prompt_var, _default_prompt, 0);
 
-    const char *prompt = getenv(_prompt_var);
-    puts(prompt);
+    _display_prompt();
     while(1) {
         // TODO: Replace gets, as it is unsafe
         gets(cmd);
+        putchar('\n'); /* Workaround for '\n' character not being echoed right away via serial. */
         if(strlen(cmd) > 0) {
-            putchar('\n'); /* Workaround for '\n' character not being echoed right away via serial. */
             _handle_command(cmd);
-
-            prompt = getenv(_prompt_var);
-            puts(prompt);
         }
+        _display_prompt();
     }
 }
 
@@ -47,37 +52,31 @@ void shell_loop(void) {
  * @return List of pointers to string, terminated by a NULL pointer.
  */
 static char **_args_split(const char *str) {
-    /* @todo This could also be allocated if we use three runs */
 #define MAX_PARAMS 32
-    static char *params[MAX_PARAMS + 1];
-    unsigned param_cnt = 0;
+    char   **params    = NULL;
 
-#define RUN_ALLOC 0
-#define RUN_REAL  1
-    for(unsigned run = 0; run < 2; run++) {
-#define SPLITFLAGS_INSTR        (    0x03)
-#define SPLITFLAGS_INSTR_SINGLE (1UL << 0)
-#define SPLITFLAGS_INSTR_DOUBLE (1UL << 1)
-        unsigned flags     = 0;
-        unsigned param     = 0;
-        size_t   len       = 0;
+#define RUN_COUNT 0
+#define RUN_ALLOC 1
+#define RUN_REAL  2
+    for(unsigned run = 0; run < 3; run++) {
+        char     strch  = 0;
+        unsigned param  = 0;
+        size_t   len    = 0;
 
         for(unsigned i = 0; i < strlen(str); i++) {
-            if((flags & SPLITFLAGS_INSTR) &&
-               (((flags & SPLITFLAGS_INSTR_SINGLE) && (str[i] == '\'')) ||
-                ((flags & SPLITFLAGS_INSTR_DOUBLE) && (str[i] == '"')))) {
-                flags &= ~SPLITFLAGS_INSTR;
+            if(strch && (str[i] == strch)) {
+                strch = 0;
                 if(run == RUN_REAL) {
-                    params[param][len++] = QUOTE_REPLACE;
+                    params[param][len] = QUOTE_REPLACE;
                 }
-            } else if(isspace(str[i]) && !(flags & SPLITFLAGS_INSTR)) {
+                len++;
+            } else if(isspace(str[i]) && !strch) {
                 if(run == RUN_ALLOC) {
                     params[param] = malloc(len+1);
                     if(params[param] == NULL) {
                         printf("ERROR: Could not allocate memory for parameter!\n");
                         goto FAILURE;
                     }
-                    param_cnt++;
                 } else if(run == RUN_REAL) {
                     params[param][len] = 0;
                 }
@@ -103,16 +102,12 @@ static char **_args_split(const char *str) {
                     }
                 }
                 len++;
-            } else if((str[i] == '\'') && !(flags & SPLITFLAGS_INSTR)) {
-                flags |= SPLITFLAGS_INSTR_SINGLE;
+            } else if(!strch && ((str[i] == '\'') || (str[i] == '\"'))) {
+                strch = str[i];
                 if(run == RUN_REAL) {
-                    params[param][len++] = QUOTE_REPLACE;
+                    params[param][len] = QUOTE_REPLACE;
                 }
-            } else if((str[i] == '\"') && !(flags & SPLITFLAGS_INSTR)) {
-                flags |= SPLITFLAGS_INSTR_DOUBLE;
-                if(run == RUN_REAL) {
-                    params[param][len++] = QUOTE_REPLACE;
-                }
+                len++;
             } else {
                 if(run == RUN_REAL) {
                     params[param][len] = str[i];
@@ -121,7 +116,14 @@ static char **_args_split(const char *str) {
             }
         }
 
-        if(run == RUN_ALLOC) {
+        if(run == RUN_COUNT) {
+            params = malloc((param + 2) * sizeof(char *));
+            if(params == NULL) {
+                printf("ERROR: Could not allocate memory for parameter list!\n");
+                return NULL;
+            }
+            memset(params, 0, (param + 2) * sizeof(char *));
+        } else if(run == RUN_ALLOC) {
             params[param] = malloc(len+1);
             if(params[param] == NULL) {
                 printf("ERROR: Could not allocate memory for parameter!\n");
@@ -137,9 +139,11 @@ static char **_args_split(const char *str) {
     return params;
 
 FAILURE:
-    for(unsigned i = 0; i < param_cnt; i++) {
+    for(unsigned i = 0; params[i]; i++) {
         free(params[i]);
     }
+    free(params);
+
     return NULL;
 }
 
@@ -151,13 +155,7 @@ FAILURE:
  * @return int 0 on success, else non-zero
  */
 static int _args_replace(char **args) {
-    for(unsigned i = 0; args[i]; i++) {
-        printf("arg[%u]: %s\n", i, args[i]);
-    }
-    /* @todo Should probably use malloc */
-#define MAX_ENVLEN 32
-    char env_name[MAX_ENVLEN+1];
-
+#define MAX_ENVLEN 64
     for(unsigned i = 0; args[i] != NULL; i++) {
         size_t arg_len = strlen(args[i]);
         for(size_t j = 0; j < arg_len; j++) {
@@ -171,14 +169,19 @@ static int _args_replace(char **args) {
                             return -1;
                         }
 
-                        memset(env_name, 0, sizeof(env_name));
-                        memcpy(env_name, &args[i][j+1], var_sz);
-                        char *env_val = getenv(env_name);
-                        if(env_val == NULL) {
-                            /* @todo Should this just be a null-replacement? */
-                            printf("Environment variable not found!\n");
+                        char *env_name = malloc(var_sz+1);
+                        if(env_name == NULL) {
+                            printf("Could not allocate memory for environment variable!\n");
                             return -1;
                         }
+                        memcpy(env_name, &args[i][j+1], var_sz);
+                        env_name[var_sz] = 0;
+
+                        char *env_val = getenv(env_name);
+                        if(env_val == NULL) {
+                            env_val = "";
+                        }
+                        free(env_name);
 
                         arg_len = (arg_len - (var_sz + 1)) + strlen(env_val);
                         char *newarg = realloc(args[i], arg_len);
@@ -203,6 +206,7 @@ static int _args_replace(char **args) {
                 /* Delete character. strlen+1 to inlcude null terminator. */
                 memcpy(&args[i][j], &args[i][j+1], strlen(&args[i][j+1])+1);
                 arg_len--;
+                j--;
             }
         }
     }
@@ -259,5 +263,6 @@ CMD_DONE:
         for(unsigned i = 0; args[i] != NULL; i++) {
             free(args[i]);
         }
+        free(args);
     }
 }
